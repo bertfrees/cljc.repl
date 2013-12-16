@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo_and_eval() {
+	printf "=> "
+	printf "\e[0;33m$1\e[0m\n"
+	eval "$1"
+}
+
+echo_and_eval "git clone https://github.com/schani/clojurec.git lib/clojurec"
+echo_and_eval "cd lib/clojurec"
+echo_and_eval "git checkout ed8a5920a401268172099f383eb6ad09a457727d"
+echo_and_eval "git submodule init"
+echo_and_eval "git submodule update"
+echo_and_eval "cd .."
+echo_and_eval "curl -O -s https://clojars.org/repo/org/clojure/clojure/1.4.0/clojure-1.4.0.jar"
+echo_and_eval "curl -O -s https://clojars.org/repo/clj-native/clj-native/0.9.3/clj-native-0.9.3.jar"
+echo_and_eval "curl -O -s http://repo1.maven.org/maven2/net/java/dev/jna/jna/3.4.0/jna-3.4.0.jar"
+echo_and_eval "cd .."
+

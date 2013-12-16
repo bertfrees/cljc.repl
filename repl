@@ -1,0 +1,19 @@
+#!/bin/bash
+
+CLOJUREC_HOME=$(pwd)/lib/clojurec
+CLJC_REPL_HOME=$(pwd)
+CLJC_REPL_TMP=.repl
+
+CP=
+for jar in $CLOJUREC_HOME/src/clj $CLJC_REPL_HOME/src/clj $CLJC_REPL_HOME/lib/* ; do
+  CP=$CP:$jar
+done
+
+mkdir -p $CLJC_REPL_TMP
+
+export CLOJUREC_HOME CLJC_REPL_HOME
+
+( cd $CLJC_REPL_TMP && java -server -cp $CP clojure.main -e "
+(require '[cljc.repl :as repl])
+(repl/repl)
+" )
