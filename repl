@@ -10,6 +10,9 @@ for jar in $CLOJUREC_HOME/src/clj $CLJC_REPL_HOME/src/clj $CLJC_REPL_HOME/lib/* 
 done
 
 mkdir -p $CLJC_REPL_TMP
+( cd $CLJC_REPL_TMP && find . -mindepth 1 -maxdepth 1 ! -iname cache -exec rm -rf {} \; )
+mkdir -p $CLJC_REPL_TMP/cache
+mkdir -p $CLJC_REPL_TMP/eval
 
 export CLOJUREC_HOME CLJC_REPL_HOME
 
