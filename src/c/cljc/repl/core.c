@@ -8,7 +8,6 @@ extern void init__core();
 void repl_init() {
   cljc_init();
   init__core();
-  printf("ClojureC REPL\n");
 }
 
 typedef struct {

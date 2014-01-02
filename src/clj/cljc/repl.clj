@@ -3,10 +3,16 @@
   (:require [cljc.repl.compiler :as compiler]
             [cljc.repl.core :as core]))
 
+(def options
+  {:colored true})
+
+(defn- maybe-colorize [fmt & args]
+  (apply format (if (options :colored) fmt "%s") args))
 
 (defn- read []
   (binding [*ns* (create-ns cljc.compiler/*cljs-ns*)]
-    (clojure.core/print (format "%s=> " *ns*))
+    (clojure.core/print
+     (maybe-colorize "\u001B[0;33m%s\u001B[0m" (format "%s=> " *ns*)))
     (flush)
     (clojure.core/read)))
 
@@ -18,10 +24,26 @@
       (throw (Error. buffer)))))
 
 (defn- print [result]
-  (println result))
+  (println
+   (maybe-colorize "\u001B[1m%s\u001B[0m" result)))
 
 (defn- print-error [e]
-  (println (.getMessage e)))
+  (println
+   (maybe-colorize "\u001B[0;31m%s\u001B[0m" (.getMessage e))))
+
+(defn- welcome []
+  (println
+   (maybe-colorize "\u001B[0;35m%s\u001B[0m"
+                   (str ",---------------,\n"
+                        "| ClojureC REPL |\n"
+                        "`---------------'"))))
+
+(defn- goodbye []
+  (println)
+  (println
+   (maybe-colorize "\u001B[0;35m%s\u001B[0m"
+                   (str "--------\n"
+                        "Goodbye!"))))
 
 (defn- loop []
   (clojure.core/loop []
@@ -34,4 +56,6 @@
 (defn repl []
   (compiler/compile-core)
   (core/load)
+  (welcome)
+  (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
   (loop))
