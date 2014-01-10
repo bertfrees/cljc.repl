@@ -1,7 +1,7 @@
 (ns cljc.repl
   (:refer-clojure :exclude [read eval print loop])
   (:require [cljc.repl.compiler :as compiler]
-            [cljc.repl.core :as core]))
+            [cljc.repl.runtime :as runtime]))
 
 (def options
   {:colored true})
@@ -18,7 +18,7 @@
 
 (defn- eval [form]
   (let [[lib-file init-fn] (compiler/compile-form form :prefix "eval")
-        {:keys [status buffer]} (core/eval lib-file init-fn)]
+        {:keys [status buffer]} (runtime/eval lib-file init-fn)]
     (if (= status 0)
       buffer
       (throw (Error. buffer)))))
@@ -54,8 +54,8 @@
     (recur)))
 
 (defn repl []
-  (compiler/compile-core)
-  (core/load)
+  (compiler/compile-runtime)
+  (runtime/load)
   (welcome)
   (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
   (loop))

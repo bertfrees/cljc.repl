@@ -1,9 +1,9 @@
 (ns cljc.repl.compiler
   (:refer-clojure :exclude [compile])
-  (:require [cljc.compiler :as compiler])
-  (:use [clojure.java.io :only [file copy]]
-        [clojure.java.shell :only [sh]]
-        [clojure.string :only [split join]]))
+  (:require [cljc.compiler :as compiler]
+            [clojure.java.io :refer [file copy]]
+            [clojure.java.shell :refer [sh]]
+            [clojure.string :refer [split join]]))
 
 (def ^:private ON_MAC (.contains (.toLowerCase (System/getProperty "os.name")) "mac os x"))
 (def ^:private CLOJUREC_HOME (file (System/getenv "CLOJUREC_HOME")))
@@ -103,9 +103,9 @@
               (spit cached-exports (read-exports ns)))
             [(make-dynamic-lib code lib-name :prefix prefix :cache cache) init-fn]))))))
 
-(defn compile-core []  
   (make-dynamic-lib (delay (slurp (file CLOJUREC_HOME "src/c/runtime.c")))
                     "_runtime" :cache true)
+(defn compile-runtime []
   (compile [(file CLOJUREC_HOME "src/cljc/cljc/core.cljc")]
            ['(ns cljc.core)
             '(def *ns* 'cljc.user)
@@ -114,7 +114,7 @@
             '(def *3 nil)]
            "_core" :ns 'cljc.core :cache true)
   (make-dynamic-lib (delay (str (slurp (file CLOJUREC_HOME "src/c/preamble.c"))
-                                (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/core.c"))))
+                                (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime.c"))))
                     "_repl" :cache true))
 
 (let [counter (atom 0)]

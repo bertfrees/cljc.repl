@@ -1,8 +1,8 @@
-(ns cljc.repl.core
+(ns cljc.repl.runtime
   (:refer-clojure :exclude [eval load])
-  (:use [clj-native.direct :only [defclib loadlib]]))
+  (:require [clj-native.direct :refer [defclib loadlib]]))
 
-(defclib core
+(defclib runtime
   (:libname "_repl")
   (:structs
    (repl_result :status int :buffer constchar*))
@@ -19,7 +19,7 @@
       result)))
 
 (defn load []
-  (loadlib core)
+  (loadlib runtime)
   (repl_init))
 
 (defn eval [lib-file init-fn]
