@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [read eval print loop])
   (:require [cljc.repl.compiler :as compiler]
             [cljc.repl.runtime :as runtime]
-            [cljc.repl.util :refer [maybe-colorize]]))
+            [cljc.repl.util :refer [maybe-colorize map-stderr]]))
 
 
 
@@ -25,8 +25,13 @@
    (maybe-colorize "\u001B[1m%s\u001B[0m" result)))
 
 (defn- print-error [e]
-  (println
-   (maybe-colorize "\u001B[0;31m%s\u001B[0m" (.getMessage e))))
+  (binding [*out* *err*]
+    (println (.getMessage e))))
+
+(defmacro maybe-colorize-stderr [& body]
+  `(map-stderr
+    #(maybe-colorize "\u001B[0;31m%s\u001B[0m" %)
+    ~@body))
 
 (defn- welcome []
   (println
@@ -48,11 +53,13 @@
       (print (eval (read)))
       (catch Throwable e
         (print-error e)))
+    (Thread/sleep 10)
     (recur)))
 
 (defn repl []
-  (compiler/compile-runtime)
-  (runtime/load)
-  (welcome)
-  (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
-  (loop))
+  (maybe-colorize-stderr   
+   (compiler/compile-runtime)
+   (runtime/load)
+   (welcome)
+   (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
+   (loop)))

@@ -1,11 +1,26 @@
 (ns cljc.repl.util
   (:require [clojure.string :refer [join]]
-            [clojure.java.shell :as shell]))
+            [clojure.java.io :refer [reader writer]]
+            [clojure.java.shell :as shell])
+  (:import [java.io PipedOutputStream PipedInputStream]))
 
 (def ^:private COLORS (Boolean/valueOf (System/getenv "CLJC_REPL_COLORS")))
 
 (defn maybe-colorize [fmt & args]
   (apply format (if COLORS fmt "%s") args))
+
+(defmacro map-stderr [f & body]
+  `(let [err# *err*
+         os# (PipedOutputStream.)
+         is# (PipedInputStream. os#)]
+     (.start
+      (Thread.
+       #(with-open [rdr# (reader is#)]
+          (doseq [line# (line-seq rdr#)]
+            (binding [*out* err#]
+              (println (~f line#)))))))
+     (binding [*err* (writer os#)]
+       ~@body)))
 
 (defn read-fields [struct fields]
   (loop [fields fields
