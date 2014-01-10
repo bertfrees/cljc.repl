@@ -3,6 +3,7 @@
 CLOJUREC_HOME=$(pwd)/lib/clojurec
 CLJC_REPL_HOME=$(pwd)
 CLJC_REPL_TMP=.repl
+CLJC_REPL_COLORS=true
 
 CP=
 for jar in $CLOJUREC_HOME/src/clj $CLJC_REPL_HOME/src/clj $CLJC_REPL_HOME/lib/* ; do
@@ -14,7 +15,7 @@ mkdir -p $CLJC_REPL_TMP
 mkdir -p $CLJC_REPL_TMP/cache
 mkdir -p $CLJC_REPL_TMP/eval
 
-export CLOJUREC_HOME CLJC_REPL_HOME
+export CLOJUREC_HOME CLJC_REPL_HOME CLJC_REPL_COLORS
 
 ( cd $CLJC_REPL_TMP && java -server -cp $CP clojure.main -e "
 (require '[cljc.repl :as repl])
