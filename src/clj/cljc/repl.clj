@@ -1,12 +1,10 @@
 (ns cljc.repl
   (:refer-clojure :exclude [read eval print loop])
   (:require [cljc.repl.compiler :as compiler]
-            [cljc.repl.runtime :as runtime]))
+            [cljc.repl.runtime :as runtime]
+            [cljc.repl.util :refer [maybe-colorize]]))
 
-(def ^:private COLORS (Boolean/valueOf (System/getenv "CLJC_REPL_COLORS")))
 
-(defn- maybe-colorize [fmt & args]
-  (apply format (if COLORS fmt "%s") args))
 
 (defn- read []
   (binding [*ns* (create-ns cljc.compiler/*cljs-ns*)]

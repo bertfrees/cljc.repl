@@ -1,8 +1,8 @@
 (ns cljc.repl.compiler
   (:refer-clojure :exclude [compile])
   (:require [cljc.compiler :as compiler]
-            [clojure.java.io :refer [file copy]]
-            [clojure.java.shell :refer [sh]]
+            [cljc.repl.util :refer [sh maybe-deref]]
+            [clojure.java.io :refer [file]]
             [clojure.string :refer [split join]]))
 
 (def ^:private ON_MAC (.contains (.toLowerCase (System/getProperty "os.name")) "mac os x"))
@@ -13,29 +13,18 @@
 
 (def ^:private CFLAGS
   ["-Wno-unused-variable" "-Wno-unused-value" "-Wno-unused-function" "-g" "-O0"
-   (split (:out (sh "pcre-config" "--cflags")) #"\s+")
-   (split (:out (sh "pkg-config" "--cflags" "bdw-gc" "glib-2.0")) #"\s+")
+   (split (sh "pcre-config" "--cflags") #"\s+")
+   (split (sh "pkg-config" "--cflags" "bdw-gc" "glib-2.0") #"\s+")
    (str "-I" (file CLOJUREC_HOME "src/c"))
    (str "-I" (file CLOJUREC_HOME "run/thirdparty/klib"))])
 
 (def ^:private LDFLAGS
   ["-lm" "-lpthread"
-   (split (:out (sh "pcre-config" "--libs")) #"\s+")
-   (split (:out (sh "pkg-config" "--libs" "bdw-gc" "glib-2.0")) #"\s+")])
+   (split (sh "pcre-config" "--libs") #"\s+")
+   (split (sh "pkg-config" "--libs" "bdw-gc" "glib-2.0") #"\s+")])
 
 (def ^:private libs (atom #{}))
 (def ^:private search-dirs (atom #{}))
-
-(defn- exec [& cmd]
-  (let [cmd (map str (flatten cmd))
-        result (apply sh cmd)]
-    (if (not= 0 (:exit result))
-      (throw (Error. (str "Compilation failed:\n"
-                          (join " " cmd) "\n"
-                          (:err result)))))))
-
-(defn- maybe-deref [x]
-  (if (instance? clojure.lang.IDeref x) (deref x) x))
 
 (defn- make-dynamic-lib [code lib-name & {:keys [prefix cache]}]
   (let [c-file (file (str lib-name ".c"))
@@ -44,11 +33,11 @@
         lib-file (file (str prefix "lib" lib-name (if ON_MAC ".dylib" ".so")))
         cached-lib-file (file (file "cache") (.getName lib-file))]
     (if (and cache (.exists cached-lib-file))
-      (copy cached-lib-file lib-file)
+      (sh "cp" cached-lib-file lib-file)
       (let [code (maybe-deref code)]
         (spit c-file code)
-        (exec CC CFLAGS "-fPIC" "-c" c-file "-o" o-file)
-        (exec CC LDFLAGS
+        (sh CC CFLAGS "-fPIC" "-c" c-file "-o" o-file)
+        (sh CC LDFLAGS
               (if ON_MAC
                 ["-dynamiclib" "-install_name" (.getCanonicalPath lib-file)]
                 ["-shared" (str "-Wl,-soname,lib" lib-name ".so")])
@@ -58,7 +47,7 @@
         (.delete c-file)
         (.delete o-file)
         (when cache
-          (copy lib-file cached-lib-file))))
+          (sh "cp" lib-file cached-lib-file))))
     (swap! libs conj lib-name)
     (swap! search-dirs conj prefix)
     lib-file))
