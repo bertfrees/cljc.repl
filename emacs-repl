@@ -1,0 +1,19 @@
+#!/bin/bash
+
+EMACS=$HOME/.homesick/repos/home/bin/emacs
+
+IFS= read -r -d '' SCRIPT <<-'EOF'
+	(progn
+	  (require 'inf-lisp)
+	  (when (not (comint-check-proc "*clojurec-repl*"))
+	    (set-buffer (make-comint "clojurec-repl" "./repl"))
+	    (inferior-lisp-mode))
+	  (setq inferior-lisp-buffer "*clojurec-repl*")
+	  (pop-to-buffer-same-window "*clojurec-repl*")
+	  (add-to-list 'auto-mode-alist `("\\.cljc\\'" . ,(if (fboundp 'clojure-mode)
+	                                                      'clojure-mode
+	                                                    'lisp-mode))))
+EOF
+
+$EMACS --eval "$SCRIPT"
+printf "\r\033[1A\033[K"
