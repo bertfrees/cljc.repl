@@ -30,6 +30,25 @@
              (assoc result field (.readField struct (name field))))
       result)))
 
+(defn redirect-process [proc]
+  (let [out *out*
+        err *err*]
+    (.start
+     (Thread.
+      #(with-open [rdr (reader (.getInputStream proc))]
+         (doseq [line (line-seq rdr)]
+           (binding [*out* out]
+             (println line))))))
+    (.start
+     (Thread.
+      #(with-open [rdr (reader (.getErrorStream proc))]
+         (doseq [line (line-seq rdr)]
+           (binding [*out* err]
+             (println line))))))
+    (.start
+     (Thread.
+      #(do (.waitFor proc) (System/exit (.exitValue proc)))))))
+
 (defn sh [& cmd]
   (let [cmd (remove nil? (map str (flatten cmd)))
         result (apply shell/sh cmd)]

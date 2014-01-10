@@ -4,6 +4,7 @@ CLOJUREC_HOME=$(pwd)/lib/clojurec
 CLJC_REPL_HOME=$(pwd)
 CLJC_REPL_TMP=.repl
 CLJC_REPL_COLORS=true
+CLJC_REPL_DBUS=$( [[ $OSTYPE =~ ^darwin ]] && echo false || echo true )
 
 CP=
 for jar in $CLOJUREC_HOME/src/clj $CLJC_REPL_HOME/src/clj $CLJC_REPL_HOME/lib/* ; do
@@ -15,7 +16,7 @@ mkdir -p $CLJC_REPL_TMP
 mkdir -p $CLJC_REPL_TMP/cache
 mkdir -p $CLJC_REPL_TMP/eval
 
-export CLOJUREC_HOME CLJC_REPL_HOME CLJC_REPL_COLORS
+export CLOJUREC_HOME CLJC_REPL_HOME CLJC_REPL_COLORS CLJC_REPL_DBUS
 
 ( cd $CLJC_REPL_TMP && java -server -cp $CP clojure.main -e "
 (require '[cljc.repl :as repl])

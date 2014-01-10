@@ -11,7 +11,7 @@ void repl_init() {
 }
 
 typedef struct {
-  int status;
+  uint32_t status;
   const char * buffer;
 } repl_result;
 

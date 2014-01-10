@@ -1,10 +1,13 @@
 (ns cljc.repl
   (:refer-clojure :exclude [read eval print loop])
   (:require [cljc.repl.compiler :as compiler]
-            [cljc.repl.runtime :as runtime]
             [cljc.repl.util :refer [maybe-colorize map-stderr]]))
 
+(def ^:private DBUS (Boolean/valueOf (System/getenv "CLJC_REPL_DBUS")))
 
+(if DBUS
+  (require '[cljc.repl.runtime.dbus :as runtime])
+  (require '[cljc.repl.runtime :as runtime]))
 
 (defn- read []
   (binding [*ns* (create-ns cljc.compiler/*cljs-ns*)]
