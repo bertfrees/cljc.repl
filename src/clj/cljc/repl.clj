@@ -24,6 +24,7 @@
       (throw (Error. buffer)))))
 
 (defn- print [result]
+  (Thread/sleep 10)
   (println
    (maybe-colorize "\u001B[1m%s\u001B[0m" result)))
 
@@ -47,7 +48,7 @@
   (println)
   (println
    (maybe-colorize "\u001B[0;35m%s\u001B[0m"
-                   (str "--------\n"
+                   (str "\n"
                         "Goodbye!"))))
 
 (defn- loop []
@@ -56,7 +57,6 @@
       (print (eval (read)))
       (catch Throwable e
         (print-error e)))
-    (Thread/sleep 10)
     (recur)))
 
 (defn repl []

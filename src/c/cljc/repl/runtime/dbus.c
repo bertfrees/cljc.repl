@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
 			ASSERT(dbus_message_iter_get_arg_type(&args) == DBUS_TYPE_STRING);
 			dbus_message_iter_get_basic(&args, &init_fn);
 			repl_result = repl_eval(lib_file, init_fn);
+			fflush(stdout);
 			reply = dbus_message_new_method_return(msg);
 			dbus_message_iter_init_append(reply, &args);
 			ASSERT(dbus_message_iter_append_basic(&args, DBUS_TYPE_UINT32, &repl_result.status));

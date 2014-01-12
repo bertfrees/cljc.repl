@@ -33,9 +33,12 @@ repl_result repl_eval(const char * lib_file, const char * init_fn) {
     (*fn)();
     topmost_jmp_buf = NULL;
     result.status = 0;
-    result.buffer = string_get_utf8(
-      invoke1(VAR_NAME(cljc_DOT_core_SLASH_str),
-              VAR_NAME(cljc_DOT_core_SLASH__STAR_1)));
+    if (VAR_NAME(cljc_DOT_core_SLASH__STAR_1) == value_nil)
+      result.buffer = "nil";
+    else
+      result.buffer = string_get_utf8(
+        invoke1(VAR_NAME(cljc_DOT_core_SLASH_str),
+                VAR_NAME(cljc_DOT_core_SLASH__STAR_1)));
   }
   return result;
 }
