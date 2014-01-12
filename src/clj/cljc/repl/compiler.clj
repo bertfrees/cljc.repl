@@ -65,7 +65,7 @@
     (swap! exports-map assoc ns exports))
   (defn- read-exports [ns]
     (if-let [exports (get @exports-map ns)]
-      (prn-str exports)
+      exports
       (throw (Error. (str "Namespace " ns " not loaded!"))))))
   
 (defn- compile [files other lib-name & {:keys [ns prefix cache]
@@ -82,7 +82,7 @@
             (compiler/analyze-deps ['cljc.core]))
           (try
             (compiler/analyze-deps [ns])
-            (reset! compiler/exports (read-string (read-exports ns)))
+            (reset! compiler/exports (read-exports ns))
             (catch Throwable _))
           (let [code (with-out-str
                        (doseq [ast (compiler/analyze-files files other)]
@@ -97,7 +97,7 @@
                              "}\n"]))]
             (write-exports ns @compiler/exports)
             (when cache
-              (spit cached-exports (read-exports ns)))
+              (spit cached-exports (pr-str (read-exports ns))))
             [(make-library code lib-name :prefix prefix :cache cache) init-fn]))))))
 
 (defn compile-runtime []
@@ -110,6 +110,13 @@
   (make-library (delay (slurp (file CLOJUREC_HOME "src/c/runtime.c")))
             "_runtime"
             :cache true)
+  (write-exports 'cljc.core
+                 '[[:namespaces [cljc.core :defs Cons] {:name cljc_DOT_core_SLASH_Cons}]
+                   [:namespaces [cljc.core :defs count] {:name cljc_DOT_core_SLASH_count}]
+                   [:namespaces [cljc.core :defs first] {:name cljc_DOT_core_SLASH_first}]
+                   [:namespaces [cljc.core :defs next] {:name cljc_DOT_core_SLASH_next}]
+                   [:namespaces [cljc.core :defs apply] {:name cljc_DOT_core_SLASH_apply}]
+                   [:namespaces [cljc.core :defs print] {:name cljc_DOT_core_SLASH_print}]])
   (compile [(file CLOJUREC_HOME "src/cljc/cljc/core.cljc")]
            ['(ns cljc.core)
             '(def *ns* 'cljc.user)

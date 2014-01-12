@@ -6,9 +6,9 @@ echo_and_eval() {
 	eval "$1"
 }
 
-echo_and_eval "git clone https://github.com/schani/clojurec.git lib/clojurec"
+echo_and_eval "git clone https://github.com/bertfrees/clojurec.git lib/clojurec"
 echo_and_eval "cd lib/clojurec"
-echo_and_eval "git checkout ed8a5920a401268172099f383eb6ad09a457727d"
+echo_and_eval "git checkout 76bc50f4dc39ef8997199642ff1722e76287161a"
 echo_and_eval "git submodule init"
 echo_and_eval "git submodule update"
 echo_and_eval "cd .."
