@@ -19,7 +19,7 @@ repl_result repl_eval(const char * lib_file, const char * init_fn) {
   static void *handle;
   static void (*fn)();
   static repl_result result;
-  handle = dlopen(lib_file, RTLD_GLOBAL);
+  handle = dlopen(lib_file, RTLD_LAZY);
   fn = dlsym(handle, init_fn);
   jmp_buf exception_env;
   topmost_jmp_buf = &exception_env;

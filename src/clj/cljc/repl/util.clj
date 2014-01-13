@@ -50,7 +50,7 @@
       #(do (.waitFor proc) (System/exit (.exitValue proc)))))))
 
 (defn sh [& cmd]
-  (let [cmd (remove nil? (map str (flatten cmd)))
+  (let [cmd (map str (remove nil? (flatten cmd)))
         result (apply shell/sh cmd)]
     (if (= 0 (:exit result))
       (:out result)

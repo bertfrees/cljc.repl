@@ -40,7 +40,10 @@
       (let [code (maybe-deref code)]
         (spit c-file code)
         (sh CC CFLAGS (when lib "-fPIC") "-c" c-file "-o" o-file)
-        (sh CC LDFLAGS
+        (sh CC
+            (when (not ON_MAC)
+              "-Wl,--no-as-needed")
+            LDFLAGS
             (when lib
               (if ON_MAC
                 ["-dynamiclib" "-install_name" (.getCanonicalPath out-file)]
