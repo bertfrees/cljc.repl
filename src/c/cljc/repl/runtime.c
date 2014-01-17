@@ -2,6 +2,7 @@
 
 extern value_t *VAR_NAME(cljc_DOT_core_SLASH__get_message);
 extern value_t *VAR_NAME(cljc_DOT_core_SLASH_str);
+extern value_t *VAR_NAME(cljc_DOT_core_SLASH_pr_str);
 extern value_t *VAR_NAME(cljc_DOT_core_SLASH__STAR_1);
 extern void init__core();
 
@@ -37,7 +38,7 @@ repl_result repl_eval(const char * lib_file, const char * init_fn) {
       result.buffer = "nil";
     else
       result.buffer = string_get_utf8(
-        invoke1(VAR_NAME(cljc_DOT_core_SLASH_str),
+        invoke1(VAR_NAME(cljc_DOT_core_SLASH_pr_str),
                 VAR_NAME(cljc_DOT_core_SLASH__STAR_1)));
   }
   return result;
