@@ -10,7 +10,7 @@
   (require '[cljc.repl.runtime :as runtime]))
 
 (defn- read []
-  (binding [*ns* (create-ns cljc.compiler/*cljs-ns*)]
+  (binding [*ns* (create-ns compiler/*ns*)]
     (clojure.core/print
      (maybe-colorize "\u001B[0;33m%s\u001B[0m" (format "%s=> " *ns*)))
     (flush)
@@ -19,18 +19,19 @@
 (defn- eval [form]
   (let [[lib-file init-fn] (compiler/compile-form form :prefix "eval")
         {:keys [status buffer]} (runtime/eval lib-file init-fn)]
+    (Thread/sleep 10)
     (if (= status 0)
       buffer
       (throw (Error. buffer)))))
 
 (defn- print [result]
-  (Thread/sleep 10)
   (println
    (maybe-colorize "\u001B[1m%s\u001B[0m" result)))
 
 (defn- print-error [e]
   (binding [*out* *err*]
-    (println (.getMessage e))))
+    (println (.toString e)))
+  (Thread/sleep 10))
 
 (defmacro maybe-colorize-stderr [& body]
   `(map-stderr
@@ -60,9 +61,10 @@
     (recur)))
 
 (defn repl []
-  (maybe-colorize-stderr   
-   (compiler/compile-runtime)
-   (runtime/load)
-   (welcome)
-   (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
-   (loop)))
+  (binding [compiler/*ns* 'user]
+    (maybe-colorize-stderr   
+     (compiler/compile-runtime)
+     (runtime/load)
+     (welcome)
+     (.addShutdownHook (Runtime/getRuntime) (Thread. goodbye))
+     (loop))))

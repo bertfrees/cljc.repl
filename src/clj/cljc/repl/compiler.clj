@@ -1,5 +1,5 @@
 (ns cljc.repl.compiler
-  (:refer-clojure :exclude [compile])
+  (:refer-clojure :exclude [compile *ns*])
   (:require [cljc.compiler :as compiler]
             [cljc.repl.util :refer [sh maybe-deref]]
             [clojure.java.io :refer [file]]
@@ -27,7 +27,7 @@
 (def ^:private libs (atom #{}))
 (def ^:private search-dirs (atom #{}))
 
-(defn- make-executable [code name & {:keys [lib prefix cache]}]
+(defn- make-executable [name code & {:keys [lib prefix cache]}]
   (let [c-file (file (str name ".c"))
         o-file (file (str name ".o"))
         prefix (if prefix (str prefix "/") "./")
@@ -60,95 +60,95 @@
       (swap! search-dirs conj prefix))
     out-file))
 
-(defn- make-library [code name & {:keys [prefix cache]}]
-  (make-executable code name :lib true :prefix prefix :cache cache))
+(defn- make-library [name code & {:keys [prefix cache]}]
+  (make-executable name code :lib true :prefix prefix :cache cache))
 
-(let [exports-map (atom {})]
-  (defn- write-exports [ns exports]
-    (swap! exports-map assoc ns exports))
-  (defn- read-exports [ns]
-    (if-let [exports (get @exports-map ns)]
-      exports
-      (throw (Error. (str "Namespace " ns " not loaded!"))))))
-  
-(defn- compile [files other lib-name & {:keys [ns prefix cache]
-                                        :or {ns compiler/*cljs-ns*}}]
-  (let [init-fn (str "init_" lib-name)
-        cached-exports (file (file "cache") (str ns "-exports.clj"))]
-    (if (and cache (.exists cached-exports))
-      (do (write-exports ns (read-string (slurp cached-exports)))
-          [(make-library nil lib-name :prefix prefix :cache cache) init-fn])
-      (do
-        (binding [compiler/*read-exports-fn* read-exports]
-          (compiler/reset-namespaces!)
-          (when (not (= ns 'cljc.core))
-            (compiler/analyze-deps ['cljc.core]))
-          (try
-            (compiler/analyze-deps [ns])
-            (reset! compiler/exports (read-exports ns))
-            (catch Throwable _))
-          (let [code (with-out-str
-                       (doseq [ast (compiler/analyze-files files other)]
-                         (compiler/emit ast)))
-                code (join (flatten
-                            [(slurp (file CLOJUREC_HOME "src/c/preamble.c"))
-                             @compiler/declarations
-                             "void " init-fn " (void) {\n"
-                             "environment_t *env = NULL;\n"
-                             code
-                             "return;\n"
-                             "}\n"]))]
-            (write-exports ns @compiler/exports)
-            (when cache
-              (spit cached-exports (pr-str (read-exports ns))))
-            [(make-library code lib-name :prefix prefix :cache cache) init-fn]))))))
+(def ^:private exports (atom []))
+(def ^:dynamic *ns*)
+
+(defn- compile [init-fn & forms]
+  (compiler/reset-namespaces!)
+  (binding [compiler/*read-exports-fn* (fn [_] @exports)]
+    (compiler/analyze-deps [*ns*]))
+  (reset! compiler/exports @exports)
+  (binding [compiler/*read-exports-fn* (fn [_] nil)
+            compiler/*cljs-ns* *ns*
+            compiler/*cljs-file* "NO-SOURCE"]
+    (let [code (with-out-str
+                 (doseq [form forms]
+                   (compiler/emit
+                    (compiler/analyze
+                     {:ns (@compiler/namespaces compiler/*cljs-ns*) :context :statement :locals {}}
+                     form))))
+          code (join (flatten
+                      [(slurp (file CLOJUREC_HOME "src/c/preamble.c"))
+                       @compiler/declarations
+                       "void " init-fn " (void) {\n"
+                       "environment_t *env = NULL;\n"
+                       code
+                       "return;\n"
+                       "}\n"]))]
+      (set! *ns* compiler/*cljs-ns*)
+      (reset! exports @compiler/exports)
+      code)))
 
 (defn compile-runtime []
   (when DBUS
-    (make-library (delay (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime/dbus/proxy.c")))
-                  "_proxy"
+    (make-library "_proxy"
+                  (delay (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime/dbus/proxy.c")))
                   :cache true)
     (reset! libs #{})
     (reset! search-dirs #{}))
-  (make-library (delay (slurp (file CLOJUREC_HOME "src/c/runtime.c")))
-            "_runtime"
-            :cache true)
-  (write-exports 'cljc.core
-                 '[[:namespaces [cljc.core :defs Cons] {:name cljc_DOT_core_SLASH_Cons}]
-                   [:namespaces [cljc.core :defs count] {:name cljc_DOT_core_SLASH_count}]
-                   [:namespaces [cljc.core :defs first] {:name cljc_DOT_core_SLASH_first}]
-                   [:namespaces [cljc.core :defs next] {:name cljc_DOT_core_SLASH_next}]
-                   [:namespaces [cljc.core :defs apply] {:name cljc_DOT_core_SLASH_apply}]
-                   [:namespaces [cljc.core :defs print] {:name cljc_DOT_core_SLASH_print}]])
-  (compile [(file CLOJUREC_HOME "src/cljc/cljc/core.cljc")]
-           ['(ns cljc.core)
-            '(def *ns* 'cljc.user)
-            '(def *1 nil)
-            '(def *2 nil)
-            '(def *3 nil)]
-           "_core"
-           :ns 'cljc.core
-           :cache true)
+  (make-library "_runtime"
+                (delay (slurp (file CLOJUREC_HOME "src/c/runtime.c")))
+                :cache true)
+  (let [cached-exports (file "cache/exports.clj")]
+    (if (.exists cached-exports)
+      (reset! exports (read-string (slurp cached-exports)))
+      (reset! exports [[:namespaces ['cljc.core :defs 'Cons] {:name 'cljc_DOT_core_SLASH_Cons}]
+                       [:namespaces ['cljc.core :defs 'count] {:name 'cljc_DOT_core_SLASH_count}]
+                       [:namespaces ['cljc.core :defs 'first] {:name 'cljc_DOT_core_SLASH_first}]
+                       [:namespaces ['cljc.core :defs 'next] {:name 'cljc_DOT_core_SLASH_next}]
+                       [:namespaces ['cljc.core :defs 'apply] {:name 'cljc_DOT_core_SLASH_apply}]
+                       [:namespaces ['cljc.core :defs 'print] {:name 'cljc_DOT_core_SLASH_print}]
+                       [:namespaces [*ns*] {:name *ns* :excludes #{} :uses nil :requires nil :uses-macros nil :requires-macros {}}]]))
+    (make-library "_core" (delay
+                           (binding [*ns* 'cljc.core]
+                             (apply compile "init__core"
+                                    (concat (compiler/forms-seq (file CLOJUREC_HOME "src/cljc/cljc/core.cljc"))
+                                            ['(ns cljc.core)
+                                             '(def *1 nil)
+                                             '(def *2 nil)
+                                             '(def *3 nil)]))))
+                  :cache true)
+    (spit cached-exports (pr-str @exports)))
   (if DBUS
-    (make-executable (delay (str (slurp (file CLOJUREC_HOME "src/c/preamble.c"))
+    (make-executable "_repl"
+                     (delay (str (slurp (file CLOJUREC_HOME "src/c/preamble.c"))
                                  (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime.c"))
                                  (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime/dbus.c"))))
-                     "_repl"
                      :cache true)
-    (make-library (delay (str (slurp (file CLOJUREC_HOME "src/c/preamble.c"))
+    (make-library "_repl"
+                  (delay (str (slurp (file CLOJUREC_HOME "src/c/preamble.c"))
                               (slurp (file CLJC_REPL_HOME "src/c/cljc/repl/runtime.c"))))
-                  "_repl"
                   :cache true)))
 
 (let [counter (atom 0)]
-  (defn generate-form-name []
+  (defn- generate-form-name []
     (str (compiler/munge (symbol (format "form_%04d" (swap! counter inc)))))))
 
 (defn compile-form [form & {:keys [prefix]}]
-  (compile [] [`(let [ret# ~form]
-                  (set! cljc.core/*3 cljc.core/*2)
-                  (set! cljc.core/*2 cljc.core/*1)
-                  (set! cljc.core/*1 ret#)
-                  ret#)]
-           (generate-form-name)
-           :prefix prefix))
+  (let [lib-name (generate-form-name)
+        init-fn (str "init_" lib-name)
+        form (if (and (seq? form) (= (first form) 'ns))
+               `(do ~form nil)
+               form)
+        form `(let [ret# ~form]
+                (set! cljc.core/*3 cljc.core/*2)
+                (set! cljc.core/*2 cljc.core/*1)
+                (set! cljc.core/*1 ret#)
+                ret#)]
+    [(make-library lib-name
+                   (compile init-fn form)
+                   :prefix prefix)
+     init-fn]))
