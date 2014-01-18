@@ -19,7 +19,7 @@ mkdir -p $CLJC_REPL_TMP/eval
 export CLOJUREC_HOME CLJC_REPL_HOME CLJC_REPL_COLORS CLJC_REPL_DBUS
 export LD_LIBRARY_PATH=$CLJC_REPL_TMP:$LD_LIBRARY_PATH
 
-( cd $CLJC_REPL_TMP && java -server -cp $CP clojure.main -e "
+( cd $CLJC_REPL_TMP && java -server -cp $CP -Djna.nosys=true clojure.main -e "
 (require '[cljc.repl :as repl])
 (repl/repl)
 " )
