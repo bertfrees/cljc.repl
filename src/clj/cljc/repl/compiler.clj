@@ -20,7 +20,7 @@
    (str "-I" (file CLOJUREC_HOME "run/thirdparty/klib"))])
 
 (def ^:private LDFLAGS
-  ["-lm" "-lpthread"
+  ["-lm" "-lpthread" "-ldl"
    (split (sh "pcre-config" "--libs") #"\s+")
    (split (sh "pkg-config" "--libs" "bdw-gc" "glib-2.0" (when DBUS "dbus-1")) #"\s+")])
 
